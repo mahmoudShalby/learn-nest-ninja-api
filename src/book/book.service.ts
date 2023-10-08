@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common'
+import { Injectable, NotFoundException } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
 import { Book } from './schemas/book.schema'
 import { Model } from 'mongoose'
@@ -12,6 +12,11 @@ export class BookService {
     private bookModel: Model<Book>,
   ) {}
 
+  async notFoundCheck(book: Book) {
+    if (!book) throw new NotFoundException(`book not found.`)
+    return book
+  }
+
   async findAll(): Promise<Book[]> {
     return await this.bookModel.find()
   }
@@ -20,11 +25,24 @@ export class BookService {
     return await this.bookModel.create(book)
   }
 
-  async findById(id: string, response: any) {
-    try {
-      response.status(200).send(await this.bookModel.findById(id))
-    } catch (error) {
-      response.status(400).send({ error: `book with id doesn't exist.` })
-    }
+  async findById(id: string): Promise<Book> {
+    return this.notFoundCheck(
+      await this.bookModel.findById(id)
+    )
+  }
+
+  async updateById(id: string, book: Book): Promise<Book> {
+    return this.notFoundCheck(
+      await this.bookModel.findByIdAndUpdate(id, book, {
+        new: true,
+        runValidators: true,
+      })
+    )
+  }
+
+  async deleteById(id: string): Promise<Book> {
+    return this.notFoundCheck(
+      await this.bookModel.findByIdAndDelete(id)
+    )
   }
 }
